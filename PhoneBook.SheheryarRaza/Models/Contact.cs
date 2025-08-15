@@ -22,5 +22,8 @@ namespace PhoneBook.SheheryarRaza.Models
         [Required]
         [Column("PhoneNumber")] // Explicitly define column name if needed
         public string PhoneNumber { get; set; }
+
+        public int CategoryId { get; set; }
+        public Category Category { get; set; }
     }
 }

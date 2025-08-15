@@ -1,4 +1,5 @@
-﻿using PhoneBook.SheheryarRaza.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PhoneBook.SheheryarRaza.Data;
 using PhoneBook.SheheryarRaza.Models;
 
 namespace ThePhoneBook
@@ -7,6 +8,11 @@ namespace ThePhoneBook
     {
         public static void Main(string[] args)
         {
+            using (var context = new ApplicationDBContext())
+            {
+                context.Database.Migrate();
+            }
+
             Console.WriteLine("Welcome to the Phone Book Application!");
             bool isRunning = true;
 
@@ -54,7 +60,6 @@ namespace ThePhoneBook
             Console.Write("Enter Name: ");
             name = Console.ReadLine();
 
-            // Email validation loop
             while (true)
             {
                 Console.Write("Enter Email: ");
@@ -69,7 +74,6 @@ namespace ThePhoneBook
                 }
             }
 
-            // Phone number validation loop
             while (true)
             {
                 Console.Write("Enter Phone Number (e.g., 123-456-7890): ");
@@ -83,8 +87,10 @@ namespace ThePhoneBook
                     Console.WriteLine("Invalid phone number format. Please use XXX-XXX-XXXX format.");
                 }
             }
+            int categoryId = GetCategoryChoice();
 
-            var newContact = new Contact { Name = name, Email = email, PhoneNumber = phoneNumber };
+            var newContact = new Contact { Name = name, Email = email, PhoneNumber = phoneNumber, CategoryId = categoryId };
+
 
             using (var context = new ApplicationDBContext())
             {
@@ -108,12 +114,13 @@ namespace ThePhoneBook
             {
                 try
                 {
-                    var contacts = context.Contacts.OrderBy(c => c.Name).ToList();
+                    var contacts = context.Contacts.Include(c => c.Category).OrderBy(c => c.Name).ToList();
                     if (contacts.Any())
                     {
                         foreach (var contact in contacts)
                         {
-                            Console.WriteLine($"Id: {contact.Id}, Name: {contact.Name}, Email: {contact.Email}, Phone: {contact.PhoneNumber}");
+                            Console.WriteLine($"Id: {contact.Id}, Name: {contact.Name}, Email: {contact.Email}, Phone: {contact.PhoneNumber}, Category: {contact.Category?.Name ?? "N/A"}");
+
                         }
                     }
                     else
@@ -198,6 +205,8 @@ namespace ThePhoneBook
                             Console.WriteLine("Invalid phone number format. Please use XXX-XXX-XXXX format.");
                         }
                     }
+                    int newCategoryId = GetCategoryChoice();
+                    contactToUpdate.CategoryId = newCategoryId;
 
                     context.SaveChanges();
                     Console.WriteLine("Contact updated successfully!");
@@ -239,6 +248,30 @@ namespace ThePhoneBook
                 catch (Exception ex)
                 {
                     Console.WriteLine($"An error occurred while deleting the contact: {ex.Message}");
+                }
+            }
+        }
+
+        private static int GetCategoryChoice()
+        {
+            using (var context = new ApplicationDBContext())
+            {
+                var categories = context.Categories.ToList();
+                Console.WriteLine("\nSelect a category:");
+                foreach (var category in categories)
+                {
+                    Console.WriteLine($"{category.Id}. {category.Name}");
+                }
+
+                int categoryId;
+                while (true)
+                {
+                    Console.Write("Enter category Id: ");
+                    if (int.TryParse(Console.ReadLine(), out categoryId) && categories.Any(c => c.Id == categoryId))
+                    {
+                        return categoryId;
+                    }
+                    Console.WriteLine("Invalid category Id. Please select from the list.");
                 }
             }
         }
